@@ -36,6 +36,9 @@ HOMEPAGE_HTML_FILE_PATH = "base/home.html"
 ABOUT_HTML_FILE_PATH = "base/about.html"
 APPSCALE_STARTED_HTML_FILE_PATH = "base/start.html"
 
+#GCE deployment settings for cloud deployments.
+GOOGLE_COMPUTE = "gce"
+
 def terminate(request):
   """ A request to the terminate page which goes and looks up a currently 
   running deployment and terminates that deployment.
@@ -145,10 +148,14 @@ def get_termination_status(request):
 def start(request):
   """ This is the page a user submits a request to start AppScale. 
 
+  :param request:
   Returns:
     A HttpResponse rendering the start page or HttpResponseServerError
     if there was an error.
   """
+
+  logging.debug("start request received!")
+  print "start request received"
   if request.method == 'POST':
     form = CommonFields(data=request.POST)
     appscale_up_thread = None
@@ -157,10 +164,15 @@ def start(request):
     keyname = helpers.generate_keyname()
    
     cloud_type = None
-    if 'cluster' in request.POST:
+    if request.POST['toggler'] == "1":
+      print "this is a cluster"
       cloud_type = CLUSTER_DEPLOY
-    elif 'cloud' in request.POST:
+      print request.POST['cluster']
+    elif request.POST['toggler'] == "2":
+      print "this is a cloud"
       cloud_type = CLOUD_DEPLOY
+    else:
+      print "wat"
 
     if cloud_type == CLOUD_DEPLOY:
       infras = form['infrastructure'].value()
@@ -171,15 +183,26 @@ def start(request):
       access_key = form['key'].value()
       secret_key = form['secret'].value()
       ec2_url = form['ec2_euca_url'].value()
-    #Blocked on GCE tools support
-    #elif infras == form['infrastructure'].value('gce'):
-      
+
+
+      if infras == GOOGLE_COMPUTE:
+        #Writes JSON GCE credentials to /tmp/secret_credentials.json for use
+        # with tools
+        client_secrets_json = request.POST.get(form['gce_credentials'].value())
+        if form['gce_credentials'].value():
+          gce_json = open('/tmp/secret_credentials.json', 'w+')
+          gce_json.write(form['gce_credentials'].value())
+          gce_json.close()
+        project = form['gce_project_id'].value()
+        image = form['gce_image_name'].value()
+
       if not ec2_url:
         ec2_url = None
 
       if deployment_type == ADVANCE_DEPLOYMENT:
         ips_yaml = form['ips_yaml'].value()
-        appscale_up_thread = appscale_tools_thread.AppScaleUp(cloud_type,
+        appscale_up_thread = appscale_tools_thread.AppScaleUp(
+                                   cloud_type,
                                    keyname,
                                    email,
                                    password,
@@ -190,10 +213,14 @@ def start(request):
                                    ips_yaml=ips_yaml,
                                    ec2_access=access_key,
                                    ec2_secret=secret_key,
-                                   ec2_url=ec2_url)
+                                   ec2_url=ec2_url,
+                                   project=project,
+                                   image=image,
+                                   )
       elif deployment_type == SIMPLE_DEPLOYMENT:
         min_nodes = max_nodes = form['max'].value()
-        appscale_up_thread = appscale_tools_thread.AppScaleUp(cloud_type,
+        appscale_up_thread = appscale_tools_thread.AppScaleUp(
+                                   cloud_type,
                                    keyname,
                                    email,
                                    password,
@@ -205,7 +232,10 @@ def start(request):
                                    min_nodes=min_nodes,
                                    ec2_access=access_key,
                                    ec2_secret=secret_key,
-                                   ec2_url=ec2_url)
+                                   ec2_url=ec2_url,
+                                   project=project,
+                                   image=image,
+                                   )
       else:
         return HttpResponseServerError("Unable to get the deployment strategy.")
     elif cloud_type == CLUSTER_DEPLOY:

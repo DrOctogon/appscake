@@ -1,7 +1,10 @@
 """ Form creation class for deployment options in AppScale. """
 from django import forms
 from django.core.validators import validate_email
-
+"""
+TODO
+Change arg names to underscore only
+"""
 
 # Infrastructures to choose from for cloud deployments. Tuples map form names
 # to labels.
@@ -159,7 +162,7 @@ class CommonFields(forms.Form):
   }))
 
   #Form for JSON GCE credentials
-  gceCredentials = forms.CharField(max_length=100, widget=forms.TextInput(
+  gce_credentials = forms.CharField(max_length=1000, widget=forms.TextInput(
     attrs={
     'placeholder': 'Paste your GCE JSON credentials',
     'id': 'gce-credentials',
@@ -167,13 +170,15 @@ class CommonFields(forms.Form):
   }))
 
   #Form for entering your project ID
-  gceProjectId = forms.CharField(max_length=100, widget=forms.TextInput(attrs={
+  gce_project_id = forms.CharField(max_length=100, widget=forms.TextInput(
+    attrs={
     'data-required': 'true',
     'id': 'gce-project-id',
   }))
 
   #Form for naming your image
-  gceImageName = forms.CharField(max_length=100, widget=forms.TextInput(attrs={
+  gce_image_name = forms.CharField(max_length=100, widget=forms.TextInput(
+    attrs={
     'data-required': 'true',
     'id': 'gce-image-name',
   }))

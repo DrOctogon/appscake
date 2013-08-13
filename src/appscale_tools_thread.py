@@ -20,6 +20,9 @@ CLUSTER = "cluster"
 # Cloud deployment type. Examples include EC2 and Eucalyptus.
 CLOUD = "cloud"
 
+#JSON File containing GCE credentials
+JSON_CREDS = "/tmp/secret_credentials.json"
+
 class AppScaleDown(threading.Thread):
   """ Runs terminate instances thread on a currently running AppScale 
   deployment. 
@@ -210,7 +213,8 @@ class AppScaleUp(threading.Thread):
   def __init__(self, deployment_type, keyname, admin_email, admin_pass, 
     root_pass=None, placement=None, infrastructure=None, min_nodes=None, 
     max_nodes=None, machine=None, instance_type=None, ips_yaml=None, 
-    ec2_secret=None, ec2_access=None, ec2_url=None):
+    ec2_secret=None, ec2_access=None, ec2_url=None, project=None,
+    client_secrets=None, image=None):
     """ A constructor setting up the required arguments for running
     appscale-run-instances. 
     
@@ -231,6 +235,9 @@ class AppScaleUp(threading.Thread):
       ec2_secret: A str, the EC2 secret key for EC2 and Euca.
       ec2_access: A str, the EC2 access key for EC2 and Euca.
       ec2_url: A str, the EC2 URL location for EC2 and Euca.
+      client_secrets: A str, the users JSON GCE credentials.
+      project: A str representing the GCE Project ID.
+      image: A str, naming the GCE image to be created.
     """
     threading.Thread.__init__(self)
 
@@ -248,6 +255,9 @@ class AppScaleUp(threading.Thread):
     self.instance_type = instance_type
     self.ec2_secret = ec2_secret
     self.ec2_access = ec2_access
+    self.gce_credentials = client_secrets
+    self.gce_project_id = project
+    self.gce_image_name = image
 
     self.ec2_url = ec2_url
     if not ec2_url:
@@ -308,6 +318,7 @@ class AppScaleUp(threading.Thread):
     else:
       raise NotImplementedError("Unknown deployment of {0}".format(
         self.deployment_type)) 
+
 
   def run_add_keypair(self):
     """ Sets up the add keypair arguments and attempts to add the
@@ -372,13 +383,24 @@ class AppScaleUp(threading.Thread):
     Returns:
       True on success, False otherwise.
     """
-    self.args.extend(["--infrastructure", str(self.infrastructure),
+
+    if self.infrastructure == "gce":
+        self.args.extend(["--infrastructure", str(self.infrastructure),
+                      "--machine", str(self.gce_image_name),
+                      "--max", str(self.max_nodes),
+                      "--group", str(self.keyname),
+                      "--project", str(self.gce_project_id),
+                      "--client_secrets", str(JSON_CREDS),
+                      ])
+    else:
+        self.args.extend(["--infrastructure", str(self.infrastructure),
                       "--machine", self.machine,  
                       "--max", self.max_nodes,
                       "--group", self.keyname,
                       "--EC2_SECRET_KEY", self.ec2_secret,
                       "--EC2_ACCESS_KEY", self.ec2_access,
-                      "--EC2_URL", self.ec2_url])
+                      "--EC2_URL", self.ec2_url
+                      ])
     return self.run_appscale()
 
   def run_appscale(self):
@@ -392,7 +414,7 @@ class AppScaleUp(threading.Thread):
     self.state = self.RUNNING_STATE
     old_stdout = sys.stdout
     old_stderr = sys.stderr
-
+    logging.info("loggin run_appscale: {0}".format(str(self.args)))
     try:
       options = parse_args.ParseArgs(self.args, "appscale-run-instances").args
       sys.stdout = self.std_out_capture

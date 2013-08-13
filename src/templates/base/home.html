@@ -53,7 +53,6 @@ zookeeper: 192.168.33.10
                     <label for="id_ips_yaml">Enter your ips.yaml configuration below:</label>
                     {{ form.ips_yaml }}
                     {{ field }}
-                    </form>
                 </div><!--Close IPS - span6 -->
             </div><!--Closes blk-1 hidden div-->
         </div><!--Closes span12-->
@@ -93,15 +92,15 @@ zookeeper: 192.168.33.10
                     {{ form.machine }}</div>
                     <div id="gce_creds" style="display: none">
                     <label for="gce_creds">GCE JSON Credentials:</label>
-                        {{ form.gceCredentials }}
+                        {{ form.gce_credentials }}
                     </div>
                     <div id="gce_project" style="display: none">
                     <label for="gce_project">GCE Project Id:</label>
-                        {{ form.gceProjectId }}
+                        {{ form.gce_project_id }}
                     </div>
                     <div id="gce_image" style="display: none">
                         <label for="gce_image">GCE Image Name:</label>
-                        {{ form.gceImageName }}
+                        {{ form.gce_image_name }}
                     </div>
                     <br><br>
                     <button type="submit" style="margin:0px 0 25px 0px; width:
